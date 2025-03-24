@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, Brand, Product, ProductImage, Review
+from .models import Category, Brand, Product, ProductImage, Review, Coupon
 
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
@@ -39,3 +39,15 @@ class ReviewAdmin(admin.ModelAdmin):
     list_display = ('product', 'user', 'rating', 'created_at')
     list_filter = ('rating', 'created_at')
     search_fields = ('product__name', 'user__username', 'comment')
+
+@admin.register(Coupon)
+class CouponAdmin(admin.ModelAdmin):
+    list_display = ('code', 'discount', 'valid_from', 'valid_to', 'is_active')
+    list_filter = ('is_active', 'valid_from', 'valid_to')
+    search_fields = ('code',)
+    ordering = ('-created_at',)
+    
+    def get_readonly_fields(self, request, obj=None):
+        if obj:  # editing an existing object
+            return ('code',)
+        return ()

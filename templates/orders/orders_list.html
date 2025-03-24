@@ -88,28 +88,28 @@
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td>${{ item.price }}</td>
+                                                <td>₹{{ item.price|floatformat:2 }}</td>
                                                 <td>{{ item.quantity }}</td>
-                                                <td class="text-end">${{ item.total }}</td>
+                                                <td class="text-end">₹{{ item.total|floatformat:2 }}</td>
                                             </tr>
                                             {% endfor %}
                                         </tbody>
                                         <tfoot>
                                             <tr>
                                                 <td colspan="3" class="text-end">Subtotal:</td>
-                                                <td class="text-end">${{ order.subtotal }}</td>
+                                                <td class="text-end">₹{{ order.subtotal|floatformat:2 }}</td>
                                             </tr>
                                             <tr>
                                                 <td colspan="3" class="text-end">Shipping:</td>
-                                                <td class="text-end">${{ order.shipping_cost }}</td>
+                                                <td class="text-end">₹{{ order.shipping_cost|floatformat:2 }}</td>
                                             </tr>
                                             <tr>
                                                 <td colspan="3" class="text-end">Tax:</td>
-                                                <td class="text-end">${{ order.tax }}</td>
+                                                <td class="text-end">₹{{ order.tax_amount|floatformat:2 }}</td>
                                             </tr>
                                             <tr>
                                                 <td colspan="3" class="text-end"><strong>Total:</strong></td>
-                                                <td class="text-end"><strong>${{ order.total }}</strong></td>
+                                                <td class="text-end"><strong>₹{{ order.total_amount|floatformat:2 }}</strong></td>
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -123,7 +123,7 @@
                                             <p class="mb-0">{{ order.shipping_address|linebreaks }}</p>
                                         </div>
                                         <div class="col-md-6 text-md-end">
-                                            <a href="{% url 'track_order' order.order_id %}" class="btn btn-primary">
+                                            <a href="{% url 'track_order' order.order_id %}" class="btn btn-info">
                                                 <i class="fas fa-truck me-2"></i>Track Order
                                             </a>
                                             <a href="{% url 'download_invoice' order.order_id %}" class="btn btn-outline-primary">

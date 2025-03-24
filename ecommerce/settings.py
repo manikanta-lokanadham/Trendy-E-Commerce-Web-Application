@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # Third-party apps
     'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders',
     'django_filters',
     'ckeditor',
@@ -50,7 +51,7 @@ INSTALLED_APPS = [
     'products',
     'orders',
     'payments',
-    'recommendations',
+    # 'recommendations',  # Temporarily disabled due to scikit-learn dependency
 ]
 
 MIDDLEWARE = [
@@ -62,6 +63,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'ecommerce.middleware.RequestDebugMiddleware',  # Custom middleware for debugging
 ]
 
 ROOT_URLCONF = 'ecommerce.urls'
@@ -167,6 +169,8 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
+    'UNAUTHENTICATED_USER': None,  # Allow anonymous access to API if permission_classes is set to AllowAny
+    'EXCEPTION_HANDLER': 'ecommerce.utils.custom_exception_handler',
 }
 
 # JWT Settings

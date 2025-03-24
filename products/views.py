@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.conf import settings
-from rest_framework import viewsets, filters, status
+from rest_framework import viewsets, filters, status, authentication
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -18,8 +18,8 @@ from .serializers import (
     BrandSerializer,
     ReviewSerializer
 )
-from recommendations.models import UserBehavior
-from recommendations.recommendation_engine import RecommendationEngine
+# from recommendations.models import UserBehavior
+# from recommendations.recommendation_engine import RecommendationEngine
 import os
 from django.http import JsonResponse
 from decimal import Decimal
@@ -52,15 +52,15 @@ class ProductViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance)
         
         # Track user behavior for recommendations
-        if request.user.is_authenticated:
-            behavior, created = UserBehavior.objects.get_or_create(
-                user=request.user,
-                product=instance,
-                action='V'  # View
-            )
-            if not created:
-                behavior.count += 1
-                behavior.save()
+        # if request.user.is_authenticated:
+        #     behavior, created = UserBehavior.objects.get_or_create(
+        #         user=request.user,
+        #         product=instance,
+        #         action='V'  # View
+        #     )
+        #     if not created:
+        #         behavior.count += 1
+        #         behavior.save()
         
         return Response(serializer.data)
     
@@ -123,42 +123,37 @@ def create_review(request, pk):
     )
     
     # Track user behavior for recommendations
-    behavior, created = UserBehavior.objects.get_or_create(
-        user=user,
-        product=product,
-        action='V'  # View - we count reviews as views too
-    )
-    if not created:
-        behavior.count += 1
-        behavior.save()
+    # behavior, created = UserBehavior.objects.get_or_create(
+    #     user=user,
+    #     product=product,
+    #     action='V'  # View - we count reviews as views too
+    # )
+    # if not created:
+    #     behavior.count += 1
+    #     behavior.save()
     
     return Response({'detail': 'Review added'}, status=status.HTTP_201_CREATED)
 
 
+class PublicSearchAuthentication(authentication.BaseAuthentication):
+    """
+    Authentication class that allows public access to search endpoints.
+    """
+    def authenticate(self, request):
+        # Return None to indicate that this authentication class doesn't authenticate any request
+        return None
+
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def search_products(request):
+    # Add our public authentication to request
+    request.accepted_renderer = None
+    authentication_classes = [PublicSearchAuthentication]
+    
     query = request.GET.get('q', '')
     products = []
     
     if query:
-        # Track search behavior
-        if request.user.is_authenticated:
-            products = Product.objects.filter(
-                Q(name__icontains=query) | 
-                Q(description__icontains=query) |
-                Q(category__name__icontains=query) |
-                Q(brand__name__icontains=query)
-            )
-            for product in products:
-                behavior, created = UserBehavior.objects.get_or_create(
-                    user=request.user,
-                    product=product,
-                    action='S'  # Search
-                )
-                if not created:
-                    behavior.count += 1
-                    behavior.save()
-        
         # Perform actual search
         products = Product.objects.filter(
             Q(name__icontains=query) | 
@@ -166,19 +161,39 @@ def search_products(request):
             Q(category__name__icontains=query) |
             Q(brand__name__icontains=query)
         ).filter(is_available=True)
-        
-        # Add default images if needed
-        for product in products:
-            if not product.images.exists():
-                product.default_image = get_default_image()
     
-    context = {
-        'products': products,
-        'query': query,
-        'total_results': len(products)
-    }
+    # Check if request is AJAX
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        # For AJAX requests, return JSON response
+        serializer = ProductSerializer(products, many=True)
+        return JsonResponse({
+            'products': serializer.data,
+            'query': query,
+            'total_results': len(products)
+        })
     
-    return render(request, 'products/search_results.html', context)
+    # Check for API format request
+    accept_header = request.headers.get('Accept', '')
+    if 'application/json' in accept_header:
+        # For API requests
+        serializer = ProductSerializer(products, many=True)
+        return Response({
+            'products': serializer.data,
+            'query': query,
+            'total_results': len(products)
+        })
+    
+    # For regular HTML requests
+    if query:
+        # Render template with results
+        return render(request, 'products/search_results.html', {
+            'products': products,
+            'query': query,
+            'total_results': len(products)
+        })
+    
+    # If no query, redirect to products list
+    return redirect('products_list')
 
 def home(request):
     try:
@@ -205,12 +220,12 @@ def home(request):
         
         # Get recommended products for authenticated users
         recommended_products = []
-        if request.user.is_authenticated:
-            recommendation_engine = RecommendationEngine()
-            recommended_products = recommendation_engine.get_recommendations(request.user, limit=8)
-            for product in recommended_products:
-                if not product.images.exists():
-                    product.default_image = get_default_image()
+        # if request.user.is_authenticated:
+        #     recommendation_engine = RecommendationEngine()
+        #     recommended_products = recommendation_engine.get_recommendations(request.user, limit=8)
+        #     for product in recommended_products:
+        #         if not product.images.exists():
+        #             product.default_image = get_default_image()
         
         context = {
             'featured_products': featured_products,
@@ -286,18 +301,18 @@ def product_detail(request, slug):
     
     # Check if product is in user's wishlist
     is_in_wishlist = False
-    if request.user.is_authenticated:
-        is_in_wishlist = WishlistItem.objects.filter(user=request.user, product=product).exists()
+    # if request.user.is_authenticated:
+    #     is_in_wishlist = WishlistItem.objects.filter(user=request.user, product=product).exists()
         
         # Track user behavior for recommendations
-        behavior, created = UserBehavior.objects.get_or_create(
-            user=request.user,
-            product=product,
-            action='V'  # View
-        )
-        if not created:
-            behavior.count += 1
-            behavior.save()
+        # behavior, created = UserBehavior.objects.get_or_create(
+        #     user=request.user,
+        #     product=product,
+        #     action='V'  # View
+        # )
+        # if not created:
+        #     behavior.count += 1
+        #     behavior.save()
     
     context = {
         'product': product,
@@ -362,9 +377,12 @@ def buy_now(request, product_id):
 
 @login_required
 def remove_from_cart(request, item_id):
-    cart_item = get_object_or_404(CartItem, id=item_id, user=request.user)
-    cart_item.delete()
-    messages.success(request, "Item removed from cart.")
+    try:
+        cart_item = CartItem.objects.get(id=item_id, user=request.user)
+        cart_item.delete()
+        messages.success(request, "Item removed from cart.")
+    except CartItem.DoesNotExist:
+        messages.error(request, "Item not found in cart.")
     return redirect('cart')
 
 @login_required

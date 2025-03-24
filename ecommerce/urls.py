@@ -53,6 +53,7 @@ urlpatterns = [
     path('products/<slug:slug>/', product_views.product_detail, name='product_detail'),
     path('categories/', product_views.categories_list, name='categories_list'),
     path('search/', product_views.search_products, name='search_products'),
+    path('product-search/', product_views.search_products, name='search_products'),  # Add alternative URL for search
     
     # Cart & Wishlist
     path('cart/', cart, name='cart'),
@@ -107,7 +108,7 @@ urlpatterns = [
     path('api/accounts/', include('accounts.urls')),
     path('api/products/', include('products.urls')),
     path('api/orders/', include('orders.urls')),
-    path('api/recommendations/', include('recommendations.urls')),
+    # path('api/recommendations/', include('recommendations.urls')),  # Temporarily disabled
     path('api/payments/', include('payments.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

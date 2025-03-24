@@ -1,168 +1,270 @@
 from django.http import HttpResponse
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, Frame, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from io import BytesIO
 from datetime import datetime
 from decimal import Decimal
+import os
+from django.conf import settings
+import requests
+from PIL import Image as PILImage
+from io import BytesIO as PILBytesIO
+
+# Register a Unicode font that supports the Rupee symbol
+try:
+    pdfmetrics.registerFont(TTFont('DejaVuSans', os.path.join(settings.BASE_DIR, 'static', 'fonts', 'DejaVuSans.ttf')))
+except:
+    print("Warning: DejaVuSans font not found, falling back to default font")
 
 def generate_invoice_pdf(order):
-    # Create the HttpResponse object with PDF headers
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="invoice_{order.order_id}.pdf"'
-    
     # Create a buffer to receive PDF data
     buffer = BytesIO()
     
-    # Create the PDF object, using the buffer as its "file"
-    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=72)
+    # Create the PDF object with optimized margins
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=40,
+        leftMargin=40,
+        topMargin=30,
+        bottomMargin=30,
+        encoding='utf-8'
+    )
     
     # Container for the 'Flowable' objects
     elements = []
     
-    # Styles
+    # Modern color scheme - New Theme
+    primary_color = colors.HexColor('#2c3e50')  # Dark Blue
+    secondary_color = colors.HexColor('#34495e')  # Darker Blue
+    text_color = colors.HexColor('#2c3e50')  # Dark Blue for text
+    light_bg = colors.HexColor('#ecf0f1')  # Light Gray
+    border_color = colors.HexColor('#bdc3c7')  # Medium Gray
+    success_color = colors.HexColor('#27ae60')  # Green
+    
+    # Custom styles with modern design
     styles = getSampleStyleSheet()
-    title_style = styles['Heading1']
-    heading_style = styles['Heading2']
-    normal_style = styles['Normal']
     
-    # Add company logo if exists
-    # if settings.COMPANY_LOGO:
-    #     img = Image(settings.COMPANY_LOGO)
-    #     img.drawHeight = 1*inch
-    #     img.drawWidth = 2*inch
-    #     elements.append(img)
-    #     elements.append(Spacer(1, 12))
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        spaceAfter=10,
+        textColor=primary_color,
+        alignment=1,
+        fontName='Helvetica-Bold'
+    )
     
-    # Add invoice title
-    elements.append(Paragraph(f"Invoice #{order.order_id}", title_style))
-    elements.append(Spacer(1, 12))
+    heading_style = ParagraphStyle(
+        'CustomHeading',
+        parent=styles['Heading2'],
+        fontSize=14,
+        spaceBefore=10,
+        spaceAfter=5,
+        textColor=secondary_color,
+        fontName='Helvetica-Bold'
+    )
     
-    # Add order date
-    elements.append(Paragraph(f"Date: {order.created_at.strftime('%B %d, %Y')}", normal_style))
-    elements.append(Spacer(1, 12))
+    normal_style = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontSize=9,
+        spaceAfter=3,
+        textColor=text_color,
+        fontName='Helvetica',
+        leading=12
+    )
     
-    # Add customer information
-    elements.append(Paragraph("Customer Information", heading_style))
-    elements.append(Spacer(1, 6))
+    # Add logo with adjusted size
+    try:
+        logo_url = "https://i.postimg.cc/wxtWnxzs/TRENDY.jpg"
+        logo_response = requests.get(logo_url)
+        if logo_response.status_code == 200:
+            img = PILImage.open(PILBytesIO(logo_response.content))
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            temp_buffer = BytesIO()
+            img.save(temp_buffer, format='JPEG', quality=95)
+            temp_buffer.seek(0)
+            
+            logo = Image(temp_buffer)
+            logo.drawHeight = 0.8*inch
+            logo.drawWidth = 2.5*inch
+            elements.append(logo)
+            elements.append(Spacer(1, 10))
+    except Exception as e:
+        print(f"Error processing logo: {e}")
+
+    # Add invoice header with reduced spacing
+    elements.append(Paragraph(f"ORDER #{order.order_id}", title_style))
+    elements.append(Spacer(1, 5))
     
-    customer_info = [
-        f"Name: {order.first_name} {order.last_name}",
-        f"Email: {order.email}",
-        f"Phone: {order.phone}",
+    # Create header info table with reduced spacing
+    header_data = [
+        [Paragraph("INVOICE DATE", heading_style), Paragraph("ORDER STATUS", heading_style)],
+        [Paragraph(order.created_at.strftime('%B %d, %Y'), normal_style), 
+         Paragraph(order.get_status_display() if hasattr(order, 'get_status_display') else order.status.upper(), normal_style)]
     ]
     
-    # Add shipping address if available
-    shipping_address = getattr(order, 'shipping_address', None)
-    if shipping_address:
-        customer_info.append(f"Address: {shipping_address}")
+    header_table = Table(header_data, colWidths=[doc.width/2.0]*2)
+    header_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TEXTCOLOR', (0, 0), (-1, -1), text_color),
+        ('LINEBELOW', (0, 0), (-1, 0), 0.5, border_color),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('TOPPADDING', (0, 1), (-1, 1), 8),
+    ]))
     
-    for info in customer_info:
-        elements.append(Paragraph(info, normal_style))
-    elements.append(Spacer(1, 12))
+    elements.append(header_table)
+    elements.append(Spacer(1, 10))
+
+    # Create billing and shipping info with reduced spacing
+    info_data = [
+        [Paragraph("BILL TO", heading_style), Paragraph("SHIP TO", heading_style)],
+        [
+            Paragraph(f"{order.first_name} {order.last_name}<br/>"
+                     f"{order.email}<br/>"
+                     f"{order.phone}", normal_style),
+            Paragraph(f"{order.shipping_address}", normal_style)
+        ]
+    ]
     
-    # Add order items
-    elements.append(Paragraph("Order Items", heading_style))
-    elements.append(Spacer(1, 6))
+    info_table = Table(info_data, colWidths=[doc.width/2.0]*2)
+    info_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, 0), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TEXTCOLOR', (0, 0), (-1, -1), text_color),
+        ('LINEBELOW', (0, 0), (-1, 0), 0.5, border_color),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('TOPPADDING', (0, 1), (-1, 1), 8),
+    ]))
     
-    # Create the table data
-    table_data = [['Item', 'Quantity', 'Price', 'Total']]
+    elements.append(info_table)
+    elements.append(Spacer(1, 10))
+
+    # Order items table with adjusted styling
+    elements.append(Paragraph("ORDER DETAILS", heading_style))
+    elements.append(Spacer(1, 5))
     
-    # Calculate subtotal from order items
+    # Table headers
+    table_data = [['ITEM', 'QTY', 'PRICE', 'TOTAL']]
+    
+    # Calculate subtotal
     items_subtotal = Decimal('0.00')
     for item in order.items.all():
         item_total = item.price * item.quantity
         items_subtotal += item_total
         table_data.append([
-            item.product.name,
+            Paragraph(item.product.name, normal_style),
             str(item.quantity),
-            f"${item.price:.2f}",
-            f"${item_total:.2f}"
+            f"Rs. {item.price:.2f}",
+            f"Rs. {item_total:.2f}"
         ])
     
-    # Calculate or use existing values
-    # Check for attribute existence
+    # Calculate totals
     subtotal = getattr(order, 'subtotal', None) or items_subtotal
     shipping_cost = getattr(order, 'shipping_cost', None) or Decimal('0.00')
-    tax = getattr(order, 'tax', None) or (subtotal * Decimal('0.10'))  # 10% tax if not specified
+    tax = getattr(order, 'tax', None) or (subtotal * Decimal('0.10'))
     discount = getattr(order, 'discount', None) or Decimal('0.00')
+    total = getattr(order, 'total', None) or (subtotal + shipping_cost + tax - discount)
     
-    # Calculate final total
-    total = getattr(order, 'total', None)
-    if total is None:
-        total = subtotal + shipping_cost + tax - discount
-    
-    # Add summary rows
+    # Add summary rows with minimal spacing
     table_data.extend([
-        ['', '', 'Subtotal:', f"${subtotal:.2f}"],
-        ['', '', 'Shipping:', f"${shipping_cost:.2f}"],
-        ['', '', 'Tax:', f"${tax:.2f}"],
-        ['', '', 'Discount:', f"${discount:.2f}"],
-        ['', '', 'Total:', f"${total:.2f}"]
+        ['', '', Paragraph('Subtotal:', normal_style), f"Rs. {subtotal:.2f}"],
+        ['', '', Paragraph('Shipping:', normal_style), f"Rs. {shipping_cost:.2f}"],
+        ['', '', Paragraph('Tax:', normal_style), f"Rs. {tax:.2f}"],
+        ['', '', Paragraph('Discount:', normal_style), f"Rs. {discount:.2f}"],
+        ['', '', Paragraph('<b>TOTAL</b>', normal_style), f"Rs. {total:.2f}"]
     ])
     
-    # Create the table
-    table = Table(table_data, colWidths=[3*inch, 1*inch, 1.5*inch, 1.5*inch])
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    # Create table with improved styling
+    order_table = Table(table_data, colWidths=[doc.width*0.4, doc.width*0.1, doc.width*0.25, doc.width*0.25])
+    order_table.setStyle(TableStyle([
+        # Header styling
+        ('BACKGROUND', (0, 0), (-1, 0), primary_color),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 14),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -5), colors.beige),
-        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-        ('FONTNAME', (0, 1), (-1, -5), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -5), 12),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('FONTNAME', (0, -5), (-1, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, -5), (-1, -1), 12),
-        ('BACKGROUND', (-2, -1), (-1, -1), colors.lightgrey),  # Highlight total row
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('PADDING', (0, 0), (-1, 0), 8),
+        
+        # Body styling
+        ('ALIGN', (0, 1), (0, -1), 'LEFT'),
+        ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
+        ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+        ('PADDING', (0, 1), (-1, -1), 6),
+        ('LINEBELOW', (0, 0), (-1, -6), 0.5, border_color),
+        
+        # Total section styling
+        ('LINEABOVE', (-2, -5), (-1, -5), 0.5, border_color),
+        ('LINEABOVE', (-2, -1), (-1, -1), 1, text_color),
+        ('FONTNAME', (-2, -1), (-1, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (-2, -1), (-1, -1), 10),
+        ('TEXTCOLOR', (-2, -1), (-1, -1), text_color),
     ]))
     
-    elements.append(table)
-    elements.append(Spacer(1, 12))
+    elements.append(order_table)
+    elements.append(Spacer(1, 15))
+
+    # Payment information with minimal styling
+    elements.append(Paragraph("PAYMENT INFORMATION", heading_style))
+    elements.append(Spacer(1, 5))
     
-    # Add payment information
-    elements.append(Paragraph("Payment Information", heading_style))
-    elements.append(Spacer(1, 6))
-    
-    # Use safe attribute access
     payment_method = getattr(order, 'payment_method', None)
     payment_status = getattr(order, 'payment_status', None)
-    transaction_id = getattr(order, 'transaction_id', None)
     
-    payment_info = []
+    payment_data = [
+        ['Payment Method', order.get_payment_method_display() if hasattr(order, 'get_payment_method_display') else payment_method or 'N/A'],
+        ['Payment Status', order.get_payment_status_display() if hasattr(order, 'get_payment_status_display') else payment_status or 'N/A']
+    ]
     
-    if hasattr(order, 'get_payment_method_display') and callable(getattr(order, 'get_payment_method_display')):
-        payment_info.append(f"Payment Method: {order.get_payment_method_display() or 'N/A'}")
-    elif payment_method:
-        payment_info.append(f"Payment Method: {payment_method}")
-    else:
-        payment_info.append("Payment Method: N/A")
+    if order.transaction_id:
+        payment_data.append(['Transaction ID', order.transaction_id])
     
-    if hasattr(order, 'get_payment_status_display') and callable(getattr(order, 'get_payment_status_display')):
-        payment_info.append(f"Payment Status: {order.get_payment_status_display() or 'N/A'}")
-    elif payment_status:
-        payment_info.append(f"Payment Status: {payment_status}")
-    else:
-        payment_info.append("Payment Status: N/A")
+    payment_table = Table(payment_data, colWidths=[doc.width*0.3, doc.width*0.7])
+    payment_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('TEXTCOLOR', (0, 0), (-1, -1), text_color),
+        ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
+        ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+        ('PADDING', (0, 0), (-1, -1), 4),
+        ('LINEBELOW', (0, 0), (-1, -1), 0.5, border_color),
+    ]))
     
-    if transaction_id:
-        payment_info.append(f"Transaction ID: {transaction_id}")
+    elements.append(payment_table)
+    elements.append(Spacer(1, 15))
+
+    # Footer with minimal styling
+    footer_style = ParagraphStyle(
+        'Footer',
+        parent=styles['Normal'],
+        fontSize=8,
+        textColor=text_color,
+        alignment=1,
+        fontName='Helvetica',
+        spaceBefore=10
+    )
     
-    for info in payment_info:
-        elements.append(Paragraph(info, normal_style))
+    elements.append(Paragraph("Thank you for shopping with us!", footer_style))
+    elements.append(Paragraph("For any questions or concerns, please contact our customer support.", footer_style))
     
-    # Build the PDF
+    # Build PDF
     doc.build(elements)
-    
-    # Get the value of the BytesIO buffer and write it to the response
     pdf = buffer.getvalue()
     buffer.close()
+    
+    # Create response
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{order.order_id}.pdf"'
     response.write(pdf)
     
     return response

@@ -9,13 +9,13 @@
     <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3000">
         <div class="carousel-inner">
             <div class="carousel-item active">
-                <img src="https://i.postimg.cc/gj0yJDqx/DALL-E-2025-03-19-13-29-26-A-modern-AI-powered-e-commerce-website-banner-featuring-personalized-pr.webp" class="d-block w-100" alt="AI E-commerce Banner 1">
+                <img src="https://i.postimg.cc/L4wGJLQs/banner-for-sale-people-rush-to-shop-with-bags-the-girl-runs-to-the-supermarket-young-people-with-bag.jpg" class="d-block w-100" alt="Shopping Banner">
             </div>
             <div class="carousel-item">
-                <img src="https://i.postimg.cc/x1NRM6rH/DALL-E-2025-03-19-13-29-28-A-futuristic-AI-driven-e-commerce-website-banner-showcasing-personalize.webp" class="d-block w-100" alt="AI E-commerce Banner 2">
+                <img src="https://i.postimg.cc/XvjzR8qs/codissia-Banner-min.png" class="d-block w-100" alt="Codissia Banner">
             </div>
             <div class="carousel-item">
-                <img src="https://i.postimg.cc/bJxVb3tL/DALL-E-2025-03-19-13-29-31-A-stylish-AI-powered-e-commerce-website-banner-highlighting-personalize.webp" class="d-block w-100" alt="AI E-commerce Banner 3">
+                <img src="https://i.postimg.cc/2SFt9Jkq/online-shopping-on-phone-buy-sell-business-digital-web-banner-application-money-advertising-payment.jpg" class="d-block w-100" alt="Online Shopping Banner">
             </div>
         </div>
         <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
@@ -47,10 +47,9 @@
                                 <i class="fas fa-folder fa-3x mb-2"></i>
                             </div>
                         {% endif %}
-                        <div class="card-img-overlay d-flex align-items-end bg-dark bg-opacity-50">
-                            <div class="w-100 text-white p-3">
-                                <h3 class="card-title h5 mb-1">{{ category.name }}</h3>
-                                <p class="card-text small mb-0">{{ category.description|truncatechars:60 }}</p>
+                        <div class="card-img-overlay d-flex flex-column justify-content-end bg-dark bg-opacity-50">
+                            <div class="category-content p-4">
+                                <h3 class="card-title h4 mb-0">{{ category.name }}</h3>
                             </div>
                         </div>
                     </div>
@@ -70,36 +69,40 @@
         </div>
         <div class="row g-4">
             {% for product in featured_products %}
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <div class="product-card card h-100 border-0 shadow-sm">
-                    <div class="position-relative">
+                    <div class="position-relative product-image-container">
                         {% if product.images.exists %}
-                        <img src="{{ product.images.first.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: cover;">
+                        <img src="{{ product.images.first.image.url }}" class="card-img-top product-image" alt="{{ product.name }}">
                         {% else %}
-                        <img src="{% static 'images/no-image.png' %}" class="card-img-top" alt="No Image" style="height: 200px; object-fit: contain; background-color: #f8f9fa;">
+                        <img src="{% static 'images/no-image.png' %}" class="card-img-top product-image" alt="No Image">
                         {% endif %}
                         {% if product.sale_price %}
                         <span class="badge bg-danger position-absolute top-0 end-0 m-2">Sale</span>
                         {% endif %}
                     </div>
-                    <div class="card-body">
+                    <div class="card-body d-flex flex-column">
                         <h5 class="card-title">{{ product.name }}</h5>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                {% if product.sale_price %}
-                                <span class="text-decoration-line-through text-muted">${{ product.price }}</span>
-                                <span class="h5 mb-0 ms-2">${{ product.sale_price }}</span>
-                                {% else %}
-                                <span class="h5 mb-0">${{ product.price }}</span>
-                                {% endif %}
-                            </div>
+                        <div class="d-flex justify-content-center align-items-center mb-2">
                             <div class="text-warning">
                                 {% for i in "12345"|make_list %}
                                 <i class="fas fa-star {% if forloop.counter <= product.rating %}text-warning{% else %}text-muted{% endif %}"></i>
                                 {% endfor %}
                             </div>
                         </div>
-                        <a href="{% url 'product_detail' product.slug %}" class="btn btn-primary w-100 mt-3">View Details</a>
+                        <div class="price-container mb-3">
+                            {% if product.sale_price %}
+                            <span class="text-decoration-line-through text-muted">₹{{ product.price }}</span>
+                            <span class="h5 mb-0 ms-2 text-danger">₹{{ product.sale_price }}</span>
+                            {% else %}
+                            <span class="h5 mb-0">₹{{ product.price }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="mt-auto">
+                            <a href="{% url 'product_detail' product.slug %}" class="btn btn-primary w-100 view-details-btn">
+                                <i class="fas fa-eye me-2"></i>View Details
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -117,34 +120,38 @@
         </div>
         <div class="row g-4">
             {% for product in new_arrivals %}
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <div class="product-card card h-100 border-0 shadow-sm">
-                    <div class="position-relative">
+                    <div class="position-relative product-image-container">
                         {% if product.images.exists %}
-                        <img src="{{ product.images.first.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: cover;">
+                        <img src="{{ product.images.first.image.url }}" class="card-img-top product-image" alt="{{ product.name }}">
                         {% else %}
-                        <img src="{% static 'images/no-image.png' %}" class="card-img-top" alt="No Image" style="height: 200px; object-fit: contain; background-color: #f8f9fa;">
+                        <img src="{% static 'images/no-image.png' %}" class="card-img-top product-image" alt="No Image">
                         {% endif %}
                         <span class="badge bg-success position-absolute top-0 end-0 m-2">New</span>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body d-flex flex-column">
                         <h5 class="card-title">{{ product.name }}</h5>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                {% if product.sale_price %}
-                                <span class="text-decoration-line-through text-muted">${{ product.price }}</span>
-                                <span class="h5 mb-0 ms-2">${{ product.sale_price }}</span>
-                                {% else %}
-                                <span class="h5 mb-0">${{ product.price }}</span>
-                                {% endif %}
-                            </div>
+                        <div class="d-flex justify-content-center align-items-center mb-2">
                             <div class="text-warning">
                                 {% for i in "12345"|make_list %}
                                 <i class="fas fa-star {% if forloop.counter <= product.rating %}text-warning{% else %}text-muted{% endif %}"></i>
                                 {% endfor %}
                             </div>
                         </div>
-                        <a href="{% url 'product_detail' product.slug %}" class="btn btn-primary w-100 mt-3">View Details</a>
+                        <div class="price-container mb-3">
+                            {% if product.sale_price %}
+                            <span class="text-decoration-line-through text-muted">₹{{ product.price }}</span>
+                            <span class="h5 mb-0 ms-2 text-danger">₹{{ product.sale_price }}</span>
+                            {% else %}
+                            <span class="h5 mb-0">₹{{ product.price }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="mt-auto">
+                            <a href="{% url 'product_detail' product.slug %}" class="btn btn-primary w-100 view-details-btn">
+                                <i class="fas fa-eye me-2"></i>View Details
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -162,37 +169,41 @@
         </div>
         <div class="row g-4">
             {% for product in top_rated %}
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <div class="product-card card h-100 border-0 shadow-sm">
-                    <div class="position-relative">
+                    <div class="position-relative product-image-container">
                         {% if product.images.exists %}
-                        <img src="{{ product.images.first.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: cover;">
+                        <img src="{{ product.images.first.image.url }}" class="card-img-top product-image" alt="{{ product.name }}">
                         {% else %}
-                        <img src="{% static 'images/no-image.png' %}" class="card-img-top" alt="No Image" style="height: 200px; object-fit: contain; background-color: #f8f9fa;">
+                        <img src="{% static 'images/no-image.png' %}" class="card-img-top product-image" alt="No Image">
                         {% endif %}
                         {% if product.rating >= 4.5 %}
                         <span class="badge bg-warning position-absolute top-0 end-0 m-2">Top Rated</span>
                         {% endif %}
                     </div>
-                    <div class="card-body">
+                    <div class="card-body d-flex flex-column">
                         <h5 class="card-title">{{ product.name }}</h5>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                {% if product.sale_price %}
-                                <span class="text-decoration-line-through text-muted">${{ product.price }}</span>
-                                <span class="h5 mb-0 ms-2">${{ product.sale_price }}</span>
-                                {% else %}
-                                <span class="h5 mb-0">${{ product.price }}</span>
-                                {% endif %}
-                            </div>
+                        <div class="d-flex justify-content-center align-items-center mb-2">
                             <div class="text-warning">
                                 {% for i in "12345"|make_list %}
                                 <i class="fas fa-star {% if forloop.counter <= product.rating %}text-warning{% else %}text-muted{% endif %}"></i>
                                 {% endfor %}
-                                <small class="text-muted ms-1">({{ product.num_reviews }})</small>
                             </div>
+                            <small class="text-muted ms-1">({{ product.num_reviews }})</small>
                         </div>
-                        <a href="{% url 'product_detail' product.slug %}" class="btn btn-primary w-100 mt-3">View Details</a>
+                        <div class="price-container mb-3">
+                            {% if product.sale_price %}
+                            <span class="text-decoration-line-through text-muted">₹{{ product.price }}</span>
+                            <span class="h5 mb-0 ms-2 text-danger">₹{{ product.sale_price }}</span>
+                            {% else %}
+                            <span class="h5 mb-0">₹{{ product.price }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="mt-auto">
+                            <a href="{% url 'product_detail' product.slug %}" class="btn btn-primary w-100 view-details-btn">
+                                <i class="fas fa-eye me-2"></i>View Details
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -252,13 +263,25 @@
 
 .carousel-item img {
     height: 100%;
+    width: 100%;
     object-fit: cover;
+}
+
+/* Add sliding animation */
+.carousel-item {
+    transition: transform 1s ease-in-out;
+}
+
+.carousel.slide {
+    transition-duration: 1s;
 }
 
 /* Category Cards */
 .category-card {
     transition: transform 0.3s ease-in-out;
     overflow: hidden;
+    border-radius: 15px;
+    height: 250px;
 }
 
 .category-card:hover {
@@ -266,39 +289,168 @@
 }
 
 .category-img {
-    height: 200px;
+    height: 100%;
     object-fit: cover;
     width: 100%;
 }
 
 .category-card .card-img-overlay {
-    background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.7) 100%);
-    transition: background 0.3s ease-in-out;
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0) 100%);
+    transition: all 0.3s ease-in-out;
+    opacity: 0.9;
+    padding: 0;
 }
 
 .category-card:hover .card-img-overlay {
-    background: linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.8) 100%);
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0) 100%);
+    opacity: 1;
 }
 
-.category-placeholder {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+.category-content {
+    background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0.4));
+    border-radius: 0 0 15px 15px;
+    transform: translateY(0);
+    transition: transform 0.3s ease;
+    text-align: center;
+    padding: 1.5rem !important;
+}
+
+.category-card:hover .category-content {
+    transform: translateY(-5px);
+}
+
+.category-card .card-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0;
+    text-align: center;
+}
+
+.category-card .card-text {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1rem;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .category-card {
+        height: 200px;
+    }
+    
+    .category-card .card-title {
+        font-size: 1.3rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .category-card .card-text {
+        font-size: 0.9rem;
+    }
+}
+
+/* Section Headers - Updated */
+.section-header h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #1f2937;
+}
+
+.section-header p {
+    font-size: 1.2rem;
+    color: #6b7280;
+    max-width: 600px;
+    margin: 0 auto;
 }
 
 /* Product Cards */
 .product-card {
-    transition: transform 0.2s;
+    transition: all 0.3s ease;
+    overflow: hidden;
 }
 
 .product-card:hover {
     transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
 }
 
-.card-img-top {
-    transition: transform 0.2s;
+.product-image-container {
+    position: relative;
+    overflow: hidden;
+    padding-top: 100%; /* 1:1 Aspect Ratio */
+    background-color: #f8f9fa;
 }
 
-.product-card:hover .card-img-top {
+.product-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 1rem;
+    transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-image {
     transform: scale(1.05);
+}
+
+.card-title {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #333;
+    text-align: center;
+}
+
+.price-container {
+    text-align: center;
+}
+
+.price-container .h5 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #4f46e5;
+}
+
+.badge {
+    font-weight: 500;
+    padding: 0.5em 0.75em;
+}
+
+/* View Details Button */
+.view-details-btn {
+    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.view-details-btn:hover {
+    background: linear-gradient(135deg, #4338ca 0%, #3730a3 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+}
+
+.view-details-btn:active {
+    transform: translateY(0);
+}
+
+.view-details-btn i {
+    transition: transform 0.3s ease;
+}
+
+.view-details-btn:hover i {
+    transform: translateX(3px);
 }
 
 /* Features Section */

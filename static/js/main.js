@@ -186,7 +186,7 @@ function initStarRating() {
 
 // Search Autocomplete
 function initSearchAutocomplete() {
-    const searchInput = document.querySelector('.search-input');
+    const searchInput = document.querySelector('input[name="q"]');
     if (searchInput) {
         let timeout;
         searchInput.addEventListener('input', () => {

@@ -161,14 +161,19 @@ class WishlistItem(models.Model):
 
 class Coupon(models.Model):
     code = models.CharField(max_length=50, unique=True)
-    discount = models.DecimalField(max_digits=5, decimal_places=2)  # Percentage discount
+    discount = models.DecimalField(max_digits=5, decimal_places=2, help_text="Discount percentage")
     valid_from = models.DateTimeField()
     valid_to = models.DateTimeField()
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+    updated_at = models.DateTimeField(auto_now=True)
+
     def __str__(self):
-        return self.code
-        
+        return f"{self.code} - {self.discount}%"
+
     def is_expired(self):
-        return timezone.now() > self.valid_to
+        now = timezone.now()
+        return now > self.valid_to or now < self.valid_from
+
+    class Meta:
+        ordering = ('-created_at',)

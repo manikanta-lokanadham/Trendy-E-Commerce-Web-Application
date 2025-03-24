@@ -43,7 +43,7 @@
                                         <small class="text-muted">Quantity: {{ item.quantity }}</small>
                                     </div>
                                 </div>
-                                <span>${{ item.total }}</span>
+                                <span>₹{{ item.total }}</span>
                             </div>
                             {% endfor %}
                             
@@ -51,10 +51,10 @@
                             
                             <!-- Order Totals -->
                             <div class="text-end">
-                                <p class="mb-1">Subtotal: ${{ order.subtotal }}</p>
-                                <p class="mb-1">Shipping: ${{ order.shipping_cost }}</p>
-                                <p class="mb-1">Tax: ${{ order.tax }}</p>
-                                <h5 class="mb-0">Total: ${{ order.total }}</h5>
+                                <p class="mb-1">Subtotal: ₹{{ order.subtotal }}</p>
+                                <p class="mb-1">Shipping: ₹{{ order.shipping_cost }}</p>
+                                <p class="mb-1">Tax: ₹{{ order.tax }}</p>
+                                <h5 class="mb-0">Total: ₹{{ order.total }}</h5>
                             </div>
                         </div>
                     </div>
